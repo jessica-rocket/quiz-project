@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Image from "next/image";
 import {
   questions,
@@ -167,6 +167,39 @@ function ResultsScreen({
   onRetake: () => void;
 }) {
   const topResult = results[0];
+  const [shared, setShared] = useState(false);
+
+  const handleShare = useCallback(async () => {
+    const shareText = `I'm a ${topResult.personality.name}! "${topResult.personality.tagline}" - Discover your coffee personality at Basecamp Coffee`;
+    const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "My Coffee Personality",
+          text: shareText,
+          url: shareUrl,
+        });
+        setShared(true);
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          await copyToClipboard(shareText + " " + shareUrl);
+        }
+      }
+    } else {
+      await copyToClipboard(shareText + " " + shareUrl);
+    }
+  }, [topResult]);
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    } catch {
+      console.error("Failed to copy");
+    }
+  };
 
   return (
     <div className="fade-in">
@@ -245,13 +278,22 @@ function ResultsScreen({
         </div>
       </div>
 
-      {/* Retake button */}
-      <button
-        onClick={onRetake}
-        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-full hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105"
-      >
-        Retake Quiz
-      </button>
+      {/* Action buttons */}
+      <div className="space-y-3">
+        <button
+          onClick={handleShare}
+          className="w-full bg-white border-2 border-purple-500 text-purple-600 font-bold py-3 px-6 rounded-full hover:bg-purple-50 transition-all transform hover:scale-105 flex items-center justify-center gap-2"
+        >
+          <span>{shared ? "Copied!" : "Share Results"}</span>
+          <span>{shared ? "✓" : "📤"}</span>
+        </button>
+        <button
+          onClick={onRetake}
+          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-full hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105"
+        >
+          Retake Quiz
+        </button>
+      </div>
     </div>
   );
 }
