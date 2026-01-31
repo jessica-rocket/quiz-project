@@ -21,6 +21,19 @@ export default function Home() {
   const [state, setState] = useState<QuizState>("welcome");
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<PersonalityType[]>([]);
+  const [sharedResult, setSharedResult] = useState<PersonalityType | null>(null);
+
+  // Check for shared result in URL on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const result = params.get("result") as PersonalityType;
+      if (result && personalities[result]) {
+        setSharedResult(result);
+        setState("results");
+      }
+    }
+  }, []);
 
   const handleStart = () => {
     trackEvent("quiz_start");
@@ -41,9 +54,24 @@ export default function Home() {
   };
 
   const handleRetake = () => {
+    // Clear URL params if coming from a shared view
+    if (typeof window !== "undefined" && window.location.search) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    setSharedResult(null);
     setState("welcome");
     setCurrentQuestion(0);
     setAnswers([]);
+  };
+
+  const getSharedResults = (personalityId: PersonalityType): PersonalityScore[] => {
+    // For shared results, show the shared personality at 100%
+    return Object.values(personalities)
+      .map((p) => ({
+        personality: p,
+        percentage: p.id === personalityId ? 100 : 0,
+      }))
+      .sort((a, b) => b.percentage - a.percentage);
   };
 
   const calculateResults = (): PersonalityScore[] => {
@@ -82,7 +110,11 @@ export default function Home() {
           />
         )}
         {state === "results" && (
-          <ResultsScreen results={calculateResults()} onRetake={handleRetake} />
+          <ResultsScreen
+            results={sharedResult ? getSharedResults(sharedResult) : calculateResults()}
+            onRetake={handleRetake}
+            isSharedView={!!sharedResult}
+          />
         )}
       </div>
     </div>
@@ -164,9 +196,11 @@ function QuizScreen({
 function ResultsScreen({
   results,
   onRetake,
+  isSharedView = false,
 }: {
   results: PersonalityScore[];
   onRetake: () => void;
+  isSharedView?: boolean;
 }) {
   const topResult = results[0];
   const [shared, setShared] = useState(false);
@@ -175,8 +209,10 @@ function ResultsScreen({
   const [emailError, setEmailError] = useState("");
 
   useEffect(() => {
-    trackEvent("quiz_complete", { personality: topResult.personality.id });
-  }, [topResult.personality.id]);
+    if (!isSharedView) {
+      trackEvent("quiz_complete", { personality: topResult.personality.id });
+    }
+  }, [topResult.personality.id, isSharedView]);
 
   const handleEmailSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -196,7 +232,8 @@ function ResultsScreen({
   const handleShare = useCallback(async () => {
     trackEvent("share_click", { personality: topResult.personality.id });
     const shareText = `I'm a ${topResult.personality.name}! "${topResult.personality.tagline}" - Discover your coffee personality at Basecamp Coffee`;
-    const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const shareUrl = `${baseUrl}?result=${topResult.personality.id}`;
 
     if (navigator.share) {
       try {
@@ -230,8 +267,10 @@ function ResultsScreen({
     <div className="fade-in">
       {/* Header */}
       <div className="text-center mb-6">
-        <span className="text-4xl mb-2 block">🎉</span>
-        <h2 className="text-xl font-bold text-gray-800">You&apos;re a...</h2>
+        <span className="text-4xl mb-2 block">{isSharedView ? "☕" : "🎉"}</span>
+        <h2 className="text-xl font-bold text-gray-800">
+          {isSharedView ? "Check out this coffee personality!" : "You're a..."}
+        </h2>
       </div>
 
       {/* Top personality */}
@@ -356,7 +395,7 @@ function ResultsScreen({
           onClick={onRetake}
           className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-full hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105"
         >
-          Retake Quiz
+          {isSharedView ? "Take the Quiz" : "Retake Quiz"}
         </button>
       </div>
     </div>

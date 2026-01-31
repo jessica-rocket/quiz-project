@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getStats, clearEvents } from "../lib/analytics";
+import { getStats, clearEvents, loadDemoData } from "../lib/analytics";
 
 export default function Dashboard() {
   const [stats, setStats] = useState<ReturnType<typeof getStats> | null>(null);
@@ -22,6 +22,11 @@ export default function Dashboard() {
       clearEvents();
       setStats(getStats());
     }
+  };
+
+  const handleLoadDemo = () => {
+    loadDemoData();
+    setStats(getStats());
   };
 
   if (!stats) {
@@ -64,6 +69,12 @@ export default function Dashboard() {
             >
               View Quiz
             </a>
+            <button
+              onClick={handleLoadDemo}
+              className="bg-green-500/20 text-green-200 px-4 py-2 rounded-full hover:bg-green-500/30 transition-colors text-sm font-medium"
+            >
+              Load Demo Data
+            </button>
             <button
               onClick={handleClearData}
               className="bg-red-500/20 text-red-200 px-4 py-2 rounded-full hover:bg-red-500/30 transition-colors text-sm font-medium"
@@ -167,7 +178,7 @@ export default function Dashboard() {
 
         {/* Footer */}
         <p className="text-center text-purple-200 text-sm mt-8">
-          Data refreshes every 5 seconds
+          Demo mode: Data stored in your browser only. Click &quot;Load Demo Data&quot; to see sample metrics.
         </p>
       </div>
     </div>

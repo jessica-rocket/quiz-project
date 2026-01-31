@@ -89,3 +89,64 @@ export function clearEvents() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(STORAGE_KEY);
 }
+
+export function loadDemoData() {
+  if (typeof window === 'undefined') return;
+
+  const now = new Date();
+  const personalities = ['explorer', 'classic', 'adventurer', 'mindful'];
+  const demoEvents: AnalyticsEvent[] = [];
+
+  // Generate realistic demo data for past 7 days
+  for (let daysAgo = 6; daysAgo >= 0; daysAgo--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - daysAgo);
+
+    // More activity on recent days
+    const startsToday = Math.floor(Math.random() * 20) + 10 + (6 - daysAgo) * 3;
+
+    for (let i = 0; i < startsToday; i++) {
+      const eventTime = new Date(date);
+      eventTime.setHours(Math.floor(Math.random() * 14) + 8); // 8am-10pm
+      eventTime.setMinutes(Math.floor(Math.random() * 60));
+
+      // Quiz start
+      demoEvents.push({
+        type: 'quiz_start',
+        timestamp: eventTime.toISOString(),
+      });
+
+      // 85% completion rate
+      if (Math.random() < 0.85) {
+        const personality = personalities[Math.floor(Math.random() * personalities.length)];
+        const completeTime = new Date(eventTime.getTime() + 60000); // 1 min later
+
+        demoEvents.push({
+          type: 'quiz_complete',
+          timestamp: completeTime.toISOString(),
+          data: { personality },
+        });
+
+        // 35% share rate
+        if (Math.random() < 0.35) {
+          demoEvents.push({
+            type: 'share_click',
+            timestamp: new Date(completeTime.getTime() + 5000).toISOString(),
+            data: { personality },
+          });
+        }
+
+        // 25% signup rate
+        if (Math.random() < 0.25) {
+          demoEvents.push({
+            type: 'email_signup',
+            timestamp: new Date(completeTime.getTime() + 10000).toISOString(),
+            data: { personality },
+          });
+        }
+      }
+    }
+  }
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(demoEvents));
+}
