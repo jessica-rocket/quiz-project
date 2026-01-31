@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import {
   questions,
@@ -8,6 +8,7 @@ import {
   type PersonalityType,
   type Personality,
 } from "./data/quizData";
+import { trackEvent } from "./lib/analytics";
 
 type QuizState = "welcome" | "quiz" | "results";
 
@@ -22,6 +23,7 @@ export default function Home() {
   const [answers, setAnswers] = useState<PersonalityType[]>([]);
 
   const handleStart = () => {
+    trackEvent("quiz_start");
     setState("quiz");
     setCurrentQuestion(0);
     setAnswers([]);
@@ -172,7 +174,11 @@ function ResultsScreen({
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [emailError, setEmailError] = useState("");
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    trackEvent("quiz_complete", { personality: topResult.personality.id });
+  }, [topResult.personality.id]);
+
+  const handleEmailSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setEmailError("");
 
@@ -183,10 +189,12 @@ function ResultsScreen({
 
     // In production, this would send to your backend
     console.log("Email captured:", email, "Personality:", topResult.personality.name);
+    trackEvent("email_signup", { personality: topResult.personality.id });
     setEmailSubmitted(true);
   };
 
   const handleShare = useCallback(async () => {
+    trackEvent("share_click", { personality: topResult.personality.id });
     const shareText = `I'm a ${topResult.personality.name}! "${topResult.personality.tagline}" - Discover your coffee personality at Basecamp Coffee`;
     const shareUrl = typeof window !== "undefined" ? window.location.href : "";
 
