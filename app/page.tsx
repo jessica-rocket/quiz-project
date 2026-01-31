@@ -168,6 +168,23 @@ function ResultsScreen({
 }) {
   const topResult = results[0];
   const [shared, setShared] = useState(false);
+  const [email, setEmail] = useState("");
+  const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const [emailError, setEmailError] = useState("");
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailError("");
+
+    if (!email || !email.includes("@")) {
+      setEmailError("Please enter a valid email");
+      return;
+    }
+
+    // In production, this would send to your backend
+    console.log("Email captured:", email, "Personality:", topResult.personality.name);
+    setEmailSubmitted(true);
+  };
 
   const handleShare = useCallback(async () => {
     const shareText = `I'm a ${topResult.personality.name}! "${topResult.personality.tagline}" - Discover your coffee personality at Basecamp Coffee`;
@@ -276,6 +293,46 @@ function ResultsScreen({
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Email capture */}
+      <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
+        {emailSubmitted ? (
+          <div className="text-center py-2">
+            <span className="text-2xl mb-2 block">✉️</span>
+            <p className="font-semibold text-gray-800">You&apos;re on the list!</p>
+            <p className="text-sm text-gray-600">
+              We&apos;ll send you personalized recommendations and exclusive offers.
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="font-semibold text-gray-800 mb-1">
+              Not a member yet?
+            </p>
+            <p className="text-sm text-gray-600 mb-3">
+              Save your results and get a free drink on your first visit.
+            </p>
+            <form onSubmit={handleEmailSubmit} className="flex gap-2">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="flex-1 px-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:border-purple-500 text-sm"
+              />
+              <button
+                type="submit"
+                className="bg-purple-500 text-white font-semibold px-4 py-2 rounded-full hover:bg-purple-600 transition-colors text-sm"
+              >
+                Join
+              </button>
+            </form>
+            {emailError && (
+              <p className="text-red-500 text-xs mt-2">{emailError}</p>
+            )}
+          </>
+        )}
       </div>
 
       {/* Action buttons */}
